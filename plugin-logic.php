@@ -2,7 +2,7 @@
 /***
  * Plugin Name: Plugin Logic
  * Plugin URI: http://wordpress.org/plugins/plugin-logic/
- * Description: Activate plugins on pages only if they are really needed.  
+ * Description: Activate plugins only if they are really needed.  
  * Author: simon_h
  * Version: 1.0.1
  * License: GPLv2 or later
