@@ -1,6 +1,6 @@
 === Plugin Logic ===
 Contributors: simon_h
-Donate link: https://www.paypal.com/de/cgi-bin/webscr?cmd=_flow&SESSION=PnZ-Ac5n4i4YdN5Z8CLuT2vaZi0v1-OIah4iOESvENQXjXbXwKBcER2K3yi&dispatch=5885d80a13c0db1f8e263663d3faee8d8cdcf517b037b45005cf5d4eda3b985b 
+Donate link: 
 Tags: deactivate plugins by url, activate plugins by url, deactivate plugins by rules, disable plugins by page, disable plugins by rules 
 Requires at least: 3.8.0
 Tested up to: 3.8.1
