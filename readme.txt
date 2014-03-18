@@ -12,7 +12,7 @@ Loading plugins on pages only if they are really needed.
 
 == Description ==
 
-There are many possibilities to increase the speed of your Wordpress Page.  
+There are many possibilities to increase the speed of your Wordpress page.  
 One of them, which is often forgotten, is to deactivate Plugins on pages, where they are not needed. 
 This Plugin allows you to do this on a very easy way. 
 So you can reduce the amount of JavaScript and CSS files which are loaded and SQL queries run at page load.
