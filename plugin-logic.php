@@ -4,7 +4,7 @@
  * Plugin URI: http://wordpress.org/plugins/plugin-logic/
  * Description: Loading plugins on pages only if they are really needed.  
  * Author: simon_h
- * Version: 1.0.0
+ * Version: 1.0.1
  * License: GPLv2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -458,13 +458,21 @@ if ( ! class_exists('plugin_logic') ) {
 	
 		/***
 		 * If database table with rules exists, try create to create the rule file
+		 * 
 		 * @since 1.0.0
+		 * @change 1.0.1
 		 */
 		public static function on_activation() {
 			global $wpdb;
-			$table  = $wpdb->base_prefix . self::$table;
+			$table  = $wpdb->base_prefix . self::$table;			
 			
 			// Create table structur
+			$charset_collate = '';
+			if ( ! empty( $wpdb->charset ) )
+				$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
+			if ( ! empty( $wpdb->collate ) )
+				$charset_collate .= " COLLATE $wpdb->collate";
+			
 			$wpdb->query( 
 				"CREATE TABLE IF NOT EXISTS $table (
 					name longtext NOT NULL,
@@ -472,7 +480,7 @@ if ( ! class_exists('plugin_logic') ) {
 					logic mediumint(9) NOT NULL,
 					urls longtext NOT NULL,
 					words longtext NOT NULL
-				);" 
+				) $charset_collate;" 
 			);
 			
 			// Get previous saved data from database if table exists
@@ -574,11 +582,14 @@ if ( ! class_exists('plugin_logic') ) {
 		
 		/***
 		 * Delete database entries
+		 * 
 		 * @since 1.0.0
+		 * @change 1.0.1	
 		 */
 		public function on_uninstall() {
-			$GLOBALS['wpdb']->query("DROP TABLE IF EXISTS " . self::$table );
-			delete_option( 'plulo_on_dash_col' ); 				
+			$table = $GLOBALS['wpdb']->base_prefix . 'plugin_logic';
+			$GLOBALS['wpdb']->query( "DROP TABLE IF EXISTS " . $table );
+			delete_option( 'plulo_on_dash_col' ); 		
 		}	
 		
 		
