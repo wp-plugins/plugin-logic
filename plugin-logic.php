@@ -577,7 +577,7 @@ if ( ! class_exists('plugin_logic') ) {
 		 * @since 1.0.0
 		 */
 		public function on_uninstall() {
-			$GLOBALS['wpdb']->query("DROP TABLE IF EXISTS" . self::$table );
+			$GLOBALS['wpdb']->query("DROP TABLE IF EXISTS " . self::$table );
 			delete_option( 'plulo_on_dash_col' ); 				
 		}	
 		
