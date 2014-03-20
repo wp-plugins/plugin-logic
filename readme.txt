@@ -43,7 +43,7 @@ It has not been tested with a multisite installation yet.
 == Changelog ==
 
 = 1.0.3 =
-* Fixed varible name
+* Fixed varible name for database table
 
 = 1.0.2 =
 * First translation added (german)
