@@ -4,7 +4,7 @@
  * Plugin URI: http://wordpress.org/plugins/plugin-logic/
  * Description: Activate plugins on pages only if they are really needed.  
  * Author: simon_h
- * Version: 1.0.2
+ * Version: 1.0.3
  * License: GPLv2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -466,7 +466,7 @@ if ( ! class_exists('plugin_logic') ) {
 		 * If database table with rules exists, try create to create the rule file
 		 * 
 		 * @since 1.0.0
-		 * @change 1.0.2
+		 * @change 1.0.3
 		 */
 		public static function on_activation() {
 			global $wpdb;
@@ -480,7 +480,7 @@ if ( ! class_exists('plugin_logic') ) {
 				$charset_collate .= " COLLATE $wpdb->collate";
 			
 			$wpdb->query( 
-				"CREATE TABLE IF NOT EXISTS $table (
+				"CREATE TABLE IF NOT EXISTS $db_table (
 					name longtext NOT NULL,
 					on_dashboard mediumint(9) NOT NULL,
 					logic mediumint(9) NOT NULL,
@@ -492,7 +492,7 @@ if ( ! class_exists('plugin_logic') ) {
 			// Get previous saved data from database if table exists
 			$db_pl_list = array();
 			$plugin_rules = '';
-			if ( $wpdb->get_var( "SHOW TABLE STATUS LIKE '$table'") ) {
+			if ( $wpdb->get_var( "SHOW TABLE STATUS LIKE '$db_table'") ) {
 				$db_pl_list = $wpdb->get_results( "SELECT name, on_dashboard, logic, urls, words FROM $db_table ORDER BY name ASC" );
 				
 				$on_dashboard_opt = array();

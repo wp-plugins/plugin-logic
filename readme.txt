@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: deactivate plugins by url, activate plugins by url, deactivate plugins by rules, disable plugins by page, disable plugins by rules 
 Requires at least: 3.8.0
 Tested up to: 3.8.1
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -41,6 +41,9 @@ It has not been tested with a multisite installation yet.
 2. Options for the Behavior on Dashbord.
 
 == Changelog ==
+
+= 1.0.3 =
+* Fixed varible name
 
 = 1.0.2 =
 * First translation added (german)
