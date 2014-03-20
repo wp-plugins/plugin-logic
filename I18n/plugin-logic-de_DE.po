@@ -1,0 +1,73 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Plugin Logic\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-03-20 10:55+0100\n"
+"PO-Revision-Date: 2014-03-20 13:36+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;__ngettext:1,2;_n:1,2;__ngettext_noop:1,2;_n_noop:1,2;_c,_nc:4c,1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2\n"
+"X-Poedit-Basepath: ../\n"
+"X-Textdomain-Support: yes\n"
+"X-Poedit-Language: German\n"
+"X-Poedit-Country: GERMANY\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: plugin-logic-table.php:163
+msgid "There are no active Plugins or inactive Plugins with Rules."
+msgstr "Es sind keine aktiven Plugins oder inaktive Plugins mit Regeln vorhanden."
+
+#: plugin-logic-table.php:175
+msgid "Activated Plugins"
+msgstr "Aktive Plugins"
+
+#: plugin-logic-table.php:176
+msgid "Behavior on Dashbord"
+msgstr "Verhalten im Dashboard"
+
+#: plugin-logic-table.php:177
+msgid "Active / Inactive"
+msgstr "Aktiv / Inaktiv"
+
+#: plugin-logic-table.php:178
+msgid "Urls or occurring Words"
+msgstr "Urls oder darin vorkommende Wörter"
+
+#: plugin-logic-table.php:213
+msgid "Always on"
+msgstr "Immer an"
+
+#: plugin-logic-table.php:217
+msgid "Active on:"
+msgstr "Aktiv auf:"
+
+#: plugin-logic-table.php:218
+msgid "Inactive on:"
+msgstr "Inaktiv auf:"
+
+# use default
+#: plugin-logic.php:63
+msgid "Settings"
+msgstr ""
+
+# use default
+#: plugin-logic.php:103
+#: plugin-logic.php:142
+msgid "Cheatin&#8217; uh?"
+msgstr ""
+
+#: plugin-logic.php:120
+msgid "Show Options for Behavoir on Dashboard"
+msgstr "Optionen für Verhalten im Dashboard anzeigen"
+
+# use default
+#: plugin-logic.php:309
+msgid "Save Changes"
+msgstr ""
+
