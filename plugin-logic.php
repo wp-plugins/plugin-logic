@@ -2,9 +2,9 @@
 /***
  * Plugin Name: Plugin Logic
  * Plugin URI: http://wordpress.org/plugins/plugin-logic/
- * Description: Loading plugins on pages only if they are really needed.  
+ * Description: Activate plugins on pages only if they are really needed.  
  * Author: simon_h
- * Version: 1.0.0
+ * Version: 1.0.2
  * License: GPLv2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -25,9 +25,7 @@ if ( ! class_exists('plugin_logic') ) {
 	class plugin_logic {
 		
 		protected static $classobj = NULL;
-		public static $table = 'plugin_logic';
-		
-		
+	
 		/***
 		 * Handler for the action 'init'. Instantiates this class.
 		 * @since 1.0.0
@@ -40,16 +38,18 @@ if ( ! class_exists('plugin_logic') ) {
 	
 		 /***
 		  * Init class properties and methods via hook; 
+		  * 
 		  * @since 1.0.0
+		  * @change 1.0.2
 		  */
 		public function __construct() {
-			self::$table = $GLOBALS['wpdb']->base_prefix . self::$table;
 			$this->on_dash_columm = get_option( 'plulo_on_dash_col', '');
 			$this->plugin_base = plugin_basename( __FILE__ );
 			
 			register_deactivation_hook( __FILE__, array( $this, 'on_deactivation' ) );
 			register_uninstall_hook( __FILE__,    array( 'plugin_logic', 'on_uninstall' ) );
 			
+			load_plugin_textdomain( 'plugin-logic', false, dirname(plugin_basename(__FILE__)) . '/I18n/' );
 			add_filter( "plugin_action_links_$this->plugin_base", array( $this, 'plugin_add_settings_link' ) );
 			add_action( 'admin_menu', array( $this,'on_admin_menu') );
 		} 
@@ -92,7 +92,9 @@ if ( ! class_exists('plugin_logic') ) {
 		
 		/***
 		 * Check if screen-options-wrap controls changed and output the html-code for the controls.
+		 * 
 		 * @since 1.0.0
+		 * @change 1.0.2
 		 */
 		public function screen_options_controls(){
 
@@ -114,7 +116,8 @@ if ( ! class_exists('plugin_logic') ) {
 			<div style="padding:15px 0 0 15px;">
 				<form action="" method="post">
 					<input name="plulo_toggle_dash_col" type="hidden" value=""/>
-					<input name="plulo_toggle_dash_col" type="checkbox" value="checked" onChange="this.form.submit()" <?php echo $this->on_dash_columm; ?> />Show Options for Behavoir on Dashboard
+					<input name="plulo_toggle_dash_col" type="checkbox" value="checked" onChange="this.form.submit()" <?php echo $this->on_dash_columm; ?> /> 
+						<?php _e('Show Options for Behavoir on Dashboard', 'plugin-logic') ?>
 				</form>
 			</div>
 			<?php
@@ -123,11 +126,13 @@ if ( ! class_exists('plugin_logic') ) {
 		
 		 /***
 		  * Plugin Logic options page for the Dashboard
+		  * 
 		  * @since 1.0.0
+		  * @change 1.0.2
 		  */
 		public function plulo_option_page() {
 			global $wpdb;	
-			$table = self::$table;
+			$db_table = $wpdb->base_prefix . 'plugin_logic';
 			$write_error = '';
 			$all_on_dash = false;
 			
@@ -140,8 +145,8 @@ if ( ! class_exists('plugin_logic') ) {
 				
 				// Load data from db
 				$old_db_list = array();
-				if ( $wpdb->get_var( "SHOW TABLE STATUS LIKE '$table'") ) {
-					$old_db_list = $wpdb->get_results( "SELECT name, on_dashboard FROM $table ORDER BY name ASC" );
+				if ( $wpdb->get_var( "SHOW TABLE STATUS LIKE '$db_table'") ) {
+					$old_db_list = $wpdb->get_results( "SELECT name, on_dashboard FROM $db_table ORDER BY name ASC" );
 				} 
 				// Filter inactive Plugins with rules and add it to the $plugin_list
 				$no_dashboard_plugs = array();
@@ -193,6 +198,7 @@ if ( ! class_exists('plugin_logic') ) {
 					
 					// Filter user input
 					$buffer = str_replace(array("\r", "\n", "\t", " "), "", $user_txt_input[$z]);
+					$buffer = strtolower($buffer);
 					$url_rules = array();
 					$word_rules = array();
 					if ( $buffer !== '' ) {
@@ -207,16 +213,16 @@ if ( ! class_exists('plugin_logic') ) {
 						if ($this->on_dash_columm == 'checked') {						
 							$on_dashboard = $check_array[$z];
 						} else {
-							$on_dashboard = $wpdb->get_var( "SELECT on_dashboard FROM $table WHERE name Like '$path'" );
+							$on_dashboard = $wpdb->get_var( "SELECT on_dashboard FROM $db_table WHERE name Like '$path'" );
 							if ( $on_dashboard == NULL ) $on_dashboard = '1'; 
 						}	
 							
 						$logic = $radio_array[$z];
 					
 						//Database updates 
-						$db_row_exists = $wpdb->get_var( "SELECT name FROM $table WHERE name Like '$path'" );
+						$db_row_exists = $wpdb->get_var( "SELECT name FROM $db_table WHERE name Like '$path'" );
 						if ( $db_row_exists != NULL ) {
-							$wpdb->update( $table, array('name' => $path ,
+							$wpdb->update( $db_table, array('name' => $path ,
 													'on_dashboard' => $on_dashboard,
 													'logic' => $logic, 
 													'urls' => serialize($url_rules), 
@@ -224,7 +230,7 @@ if ( ! class_exists('plugin_logic') ) {
 													), array('name' => $path)
 											);
 						} else {
-							$wpdb->insert( $table, array('name' => $path ,
+							$wpdb->insert( $db_table, array('name' => $path ,
 													'on_dashboard' => $on_dashboard,
 													'logic' => $logic, 
 													'urls' => serialize($url_rules), 
@@ -277,7 +283,7 @@ if ( ! class_exists('plugin_logic') ) {
 						$plugin_rules .= "\t$t1$t2"."}\n";
 						if ( ($on_dashboard == 1) && !$all_on_dash ) $plugin_rules .= "	}\n";
 					} else {
-						$wpdb->delete( $table, array('name' => $path) );	
+						$wpdb->delete( $db_table, array('name' => $path) );	
 					}
 					
 					$z++;
@@ -300,7 +306,7 @@ if ( ! class_exists('plugin_logic') ) {
 					<?php if (is_array($write_error))  echo $write_error[0]; ?> 
 					<?php echo $plulo_table->html_output; ?>
 					<div id="tfoot" style="margin-top:10px">
-						<input name="plulo_btn1" type="submit" value="Save Changes" class="button-primary"/>
+						<input name="plulo_btn1" type="submit" value="<?php _e( 'Save Changes' )?>" class="button-primary"/>
 					</div>	
 				</form>
 			</div>			
@@ -458,13 +464,21 @@ if ( ! class_exists('plugin_logic') ) {
 	
 		/***
 		 * If database table with rules exists, try create to create the rule file
+		 * 
 		 * @since 1.0.0
+		 * @change 1.0.2
 		 */
 		public static function on_activation() {
 			global $wpdb;
-			$table  = $wpdb->base_prefix . self::$table;
+			$db_table  = $wpdb->base_prefix . 'plugin_logic';			
 			
 			// Create table structur
+			$charset_collate = '';
+			if ( ! empty( $wpdb->charset ) )
+				$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
+			if ( ! empty( $wpdb->collate ) )
+				$charset_collate .= " COLLATE $wpdb->collate";
+			
 			$wpdb->query( 
 				"CREATE TABLE IF NOT EXISTS $table (
 					name longtext NOT NULL,
@@ -472,14 +486,14 @@ if ( ! class_exists('plugin_logic') ) {
 					logic mediumint(9) NOT NULL,
 					urls longtext NOT NULL,
 					words longtext NOT NULL
-				);" 
+				) $charset_collate;" 
 			);
 			
 			// Get previous saved data from database if table exists
 			$db_pl_list = array();
 			$plugin_rules = '';
 			if ( $wpdb->get_var( "SHOW TABLE STATUS LIKE '$table'") ) {
-				$db_pl_list = $wpdb->get_results( "SELECT name, on_dashboard, logic, urls, words FROM $table ORDER BY name ASC" );
+				$db_pl_list = $wpdb->get_results( "SELECT name, on_dashboard, logic, urls, words FROM $db_table ORDER BY name ASC" );
 				
 				$on_dashboard_opt = array();
 				foreach($db_pl_list as $db_pl) {
@@ -574,11 +588,14 @@ if ( ! class_exists('plugin_logic') ) {
 		
 		/***
 		 * Delete database entries
+		 * 
 		 * @since 1.0.0
+		 * @change 1.0.1	
 		 */
 		public function on_uninstall() {
-			$GLOBALS['wpdb']->query("DROP TABLE IF EXISTS " . self::$table );
-			delete_option( 'plulo_on_dash_col' ); 				
+			$db_table = $GLOBALS['wpdb']->base_prefix . 'plugin_logic';
+			$GLOBALS['wpdb']->query( "DROP TABLE IF EXISTS " . $db_table );
+			delete_option( 'plulo_on_dash_col' ); 		
 		}	
 		
 		

@@ -4,7 +4,9 @@
  *
  * @package	    Plugin Logic
  * @author      simon_h
+ * 
  * @since       1.0.0
+ * @change		1.0.2
  */
  
  // Security check
@@ -65,7 +67,7 @@ if ( ! class_exists( 'plulo_table' ) ) {
 				function rgbStringToHex(rgbStr){
 					var a = rgbStr.split("(")[1].split(")")[0];
 					a = a.split(",");
-					var b = a.map(function(x){             //For each array element
+					var b = a.map(function(x){             
 						x = parseInt(x).toString(16);      //Convert to a base16 string
 						return (x.length==1) ? "0"+x : x;  //Add zero if we get only one character
 					})
@@ -80,17 +82,12 @@ if ( ! class_exists( 'plulo_table' ) ) {
 					admin_background = rgbStringToHex( getStyle(wpadminbar, 'backgroundColor') );
 					admin_color = rgbStringToHex( getStyle(wpadminbar, 'color') );
 				
-					if ( (admin_background == '#222') || (admin_background == '#222222') ) {
-						table.style.background = '#222';
-						table.style.color = '#EEE';
-					} else {
-						table.style.background = admin_background;
-						table.style.color = admin_color;
-					}
+					table.style.background = admin_background;
+					table.style.color = admin_color;
 					
 				} else {
 					table.style.background = '#222';
-					table.style.color = '#f1f1f1';
+					table.style.color = '#EEE';
 				}
 		
 			</script> 
@@ -105,23 +102,11 @@ if ( ! class_exists( 'plulo_table' ) ) {
 		public function create_style() { 
 			return '<!-- Table Style -->
 					<style type="text/css"> 
-					.tftable { 
-						font-size:12px; 
-						color:#333333; 
-						border-width:1px; 
-						border-color:#729ea5; 
-						border-collapse:collapse; 
-						width:100%;
-					}
-					.tftable th {	
-						border-width:1px; 
-						padding:8px; 
-						border-style:solid; 
-						border-color:#EFEFEF; 
-						text-align:left;
-					}
+					.tftable { border:1px solid #EFEFEF; border-collapse:collapse; width:100%; }
+					.tftable th { padding:8px; text-align:left;}
 					.tftable tr { background-color:#fff; color:#000; }
-					.tftable td { font-size:12px; border-width:1px; padding:8px; border-style:solid; border-color:#EFEFEF; }
+					.tftable td { border:1px solid #EFEFEF; padding:8px; }
+					#hrow { background-color:#222; color:#EEE; }
 					</style>' . "\n";
 		}
 	
@@ -136,7 +121,7 @@ if ( ! class_exists( 'plulo_table' ) ) {
 			$structur = '';
 			( get_option( 'plulo_on_dash_col' ) !== false ) ? $on_dash_columm = get_option( 'plulo_on_dash_col' ) : $on_dash_columm = '';
 	
-			if(!function_exists('get_plugins')) {
+			if( !function_exists('get_plugins') ) {
 				require_once (ABSPATH . 'wp-admin/includes/plugin.php');
 			}
 			
@@ -177,20 +162,22 @@ if ( ! class_exists( 'plulo_table' ) ) {
 					}
 				);
 				$structur .= "<div class=\"update-nag\">\n"; 
-				$structur .= "	<h4> There are no active Plugins or inactive Plugins with Rules. </h4>\n"; 
+				$structur .= "	<h4>". __('There are no active Plugins or inactive Plugins with Rules.','plugin-logic') ."</h4>\n"; 
 				$structur .= "</div>\n"; 
 				return $structur;
 			}
 			
 			// Create the table
-			add_action('admin_footer',array($this, 'get_adminbar_colors') ) ;
+			if ( get_user_option('admin_color') != 'fresh' ) {
+				add_action('admin_footer',array($this, 'get_adminbar_colors') ) ;
+			}	
 			$structur.= $this->create_style(); 
 			$structur.= '<table class="tftable" border="1">'."\n"; 
 			$structur.= "<tr id=\"hrow\">\n";
-			$structur.= "	<th >Activated Plugins</th>\n";
-			if ($on_dash_columm == 'checked') $structur.= "	<th>Behavior on Dashbord</th>\n";
-			$structur.= "	<th>Active / Inactive</th>\n";
-			$structur.= "	<th>Urls or occurring Words</th>\n";
+			$structur.= "	<th>". __('Activated Plugins','plugin-logic') ."</th>\n";
+			if ($on_dash_columm == 'checked') $structur.= "	<th>". __('Behavior on Dashbord','plugin-logic') ."</th>\n";
+			$structur.= "	<th>". __('Active / Inactive', 'plugin-logic') ."</th>\n";
+			$structur.= "	<th>". __('Urls or occurring Words', 'plugin-logic') ."</th>\n";
 			$structur.= "</tr>\n";
 			
 			$z = 0;		
@@ -223,14 +210,14 @@ if ( ! class_exists( 'plulo_table' ) ) {
 				$structur.= "<tr $inactive> \n";
 				$structur.= "  <td style=\"min-width:98px;\">" . $plugin_infos[$p]['Name'] . "</td>\n";
 				if ($on_dash_columm == 'checked') {
-					$structur.= "  <td style=\"min-width:86px; width:86px;\"> \n";
+					$structur.= "  <td style=\"min-width:87px;\"> \n";
 					$structur.= '	 	<input type="hidden" name="plcon_checklist['. $z .']" value="0">' . " \n";
-					$structur.= '		<input type="checkbox" name="plcon_checklist['. $z .']" value="1" '. $always_on .'>Always on' . "\n";
+					$structur.= '		<input type="checkbox" name="plcon_checklist['. $z .']" value="1" '. $always_on .'>'. __('Always on','plugin-logic') ."\n";
 					$structur.= "  </td> \n";
 				}
 				$structur.= "  <td style=\"min-width:95px;\"> \n";
-				$structur.= '	 	<input type="radio" name="plcon_radiolist['. $z .']" value="0" '. $select_in .'> Active on:' . "<br> \n";
-				$structur.= '		<input type="radio" name="plcon_radiolist['. $z .']" value="1" '. $select_ex .'> Inactive on:' . "\n";
+				$structur.= '	 	<input type="radio" name="plcon_radiolist['. $z .']" value="0" '. $select_in .'>'. __('Active on:','plugin-logic') ."<br> \n";
+				$structur.= '		<input type="radio" name="plcon_radiolist['. $z .']" value="1" '. $select_ex .'>'. __('Inactive on:','plugin-logic') . "\n";
 				$structur.= "  </td> \n";
 				$structur.= '  <td '. $txt_in_style .' ><textarea name="plcon_txt_list['. $z .']" style="width:100%; min-height:74px">'. $act_rules_str .'</textarea></td>' . "\n";
 				$structur.= "</tr> \n";
