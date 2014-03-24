@@ -33,7 +33,7 @@ To separate your rules use the comma sign.
 
 **Q. Will this work on a multisite installation?**
 
-It has not been tested with a multisite installation yet.
+The support for multisite installations is comming soon.
 
 == Screenshots ==
 
