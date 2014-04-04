@@ -50,7 +50,7 @@ To separate your rules use the comma sign.
 = 1.0.4 =
 * Multisite support 
 * Several code changes
-* Screenshot multisite settings page
+* Screenshot for the multisite settings page
 
 = 1.0.3 =
 * Fixed important variable name for database table
