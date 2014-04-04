@@ -274,7 +274,6 @@ if ( ! class_exists('plulo_fields') ) {
 		 * @since 1.0.4
 		 */
 		public function create_tabs_and_table() {
-			//$max_blogs = 100 + 1;
 			
 			// Get all blog options
 			global $wpdb;
