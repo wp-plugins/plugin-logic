@@ -181,7 +181,6 @@ if ( ! class_exists('plugin_logic') ) {
 		public function plulo_option_page() {
 			global $wpdb;	
 			$write_error = false;
-			$all_on_dash = false;
 			
 			// Action if Save-Button pressed 
 			if( isset($_POST['plulo_submit']) ) {
@@ -390,11 +389,14 @@ if ( ! class_exists('plugin_logic') ) {
 				}
 				
 				// Second site refresh to get the new Plugin status
-				if ( !$all_on_dash && !is_array($write_error) ) $this->reload_with_ajax(); 
+				if ( is_multisite() ) {		
+						if ( ($selected_blog < 2) && !is_array($write_error) ) $this->reload_with_ajax(); 	
+				} else	
+					if ( !is_array($write_error) ) $this->reload_with_ajax(); 	
 			}
 			
 			require_once 'plugin-logic-fields.php';
-			$plulo_fields = new plulo_fields( $this->plugin_base, $all_on_dash );		
+			$plulo_fields = new plulo_fields( $this->plugin_base );		
 
 			?>		
 			<!-- Plugin Logic setting page -->		
@@ -657,7 +659,18 @@ if ( ! class_exists('plugin_logic') ) {
 					$rule_foot .= "}\n\n\n"; 
 				}
 				$rule_file_content .=  $rule_foot; 
-		
+
+				// Rule for Plugin Logic
+				$plulo_self = "//Rules for plugin-logic \n";
+				$plulo_self .= "if ( !is_network_admin() ) { \n";
+				$plulo_self .= "	function plulo_rules_for_plulo(\$plugins) { \n";
+				$plulo_self .= "		unset( \$plugins['". plugin_basename( __FILE__ ) ."'] );\n";
+				$plulo_self .= "		return \$plugins; \n";
+				$plulo_self .= "	}\n";
+				$plulo_self .= "	add_filter( 'site_option_active_sitewide_plugins', 'plulo_rules_for_plulo' );\n";
+				$plulo_self .= "}";
+				
+				$rule_file_content .=  $plulo_self; 
 			} 
 			
 			return $rule_file_content;

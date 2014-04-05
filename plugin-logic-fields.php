@@ -23,7 +23,6 @@ if ( ! class_exists('plulo_fields') ) {
 		protected static $classobj = NULL;
 		public $html_output = '';
 		public $plugin_base = '';
-		public $all_on_dash = false;
 		
 		
 		/***
@@ -40,15 +39,13 @@ if ( ! class_exists('plulo_fields') ) {
 		  * Install settings;
 		  * @since 1.0.4
 		  */
-		public function __construct( $plugin_basename = '', $all_on_dash = false ) {
+		public function __construct( $plugin_basename = '' ) {
 			$this->plugin_base = $plugin_basename;
-			$this->all_on_dash = $all_on_dash;
-			
+
 			if ( is_multisite() ) 
 				$this->html_output = $this->create_tabs_and_table();
 			else
 				$this->html_output = $this->create_the_fields(); 
-				
 		}
 		
 		
@@ -243,7 +240,7 @@ if ( ! class_exists('plulo_fields') ) {
 				($logic == 0) ?  $select_in = 'checked' : $select_ex = 'checked';
 				$always_on = ($on_dashboard == 1) ? 'checked' : '';
 				
-				$inactive = ( !in_array($p, $active_plugin_list) && !$this->all_on_dash ) ? 'style="background:#D3D1D1;"' : '';		
+				$inactive = ( !in_array($p, $active_plugin_list) ) ? 'style="background:#D3D1D1;"' : '';		
 								
 				$txt_in_style = ($on_dash_columm == 'checked') ? 'style="width:70%;"' : 'style="width:78%;"'; 
 								
