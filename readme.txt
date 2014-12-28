@@ -46,6 +46,9 @@ To separate your rules use the comma sign.
 
 == Changelog ==
 
+= 1.0.5 =
+* Device detection for rules added
+
 = 1.0.4 =
 * Multisite support 
 * Several code changes

@@ -4,7 +4,7 @@
  * Plugin URI: http://wordpress.org/plugins/plugin-logic/
  * Description: Activate plugins on pages only if they are really needed.  
  * Author: simon_h
- * Version: 1.0.4
+ * Version: 1.0.5
  * License: GPLv2 or later
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -42,20 +42,15 @@ if ( ! class_exists('plugin_logic') ) {
 		  * Init class properties, register hooks, add menu entries; 
 		  * 
 		  * @since 1.0.0
-		  * @change 1.0.4
+		  * @change 1.0.5
 		  */
 		public function __construct() {
-			$this->on_dash_columm = get_option( 'plulo_on_dash_col', '');
 			$this->plugin_base = plugin_basename( __FILE__ );
 			
 			register_deactivation_hook( __FILE__, array( $this, 'on_deactivation' ) );
 			register_uninstall_hook( __FILE__,    array( 'plugin_logic', 'on_uninstall' ) );
 			
-			load_plugin_textdomain( 'plugin-logic', false, dirname(plugin_basename(__FILE__)) . '/I18n/' );
-			
 			if ( is_multisite() ) {
-				$this->blog_range = get_option( 'plulo_blog_range', array(1,10) );
-				
 				// Menu entries
 				add_filter( "network_admin_plugin_action_links_{$this->plugin_base}", array( $this, 'plugin_add_settings_link' ) ); 
 				add_action( 'network_admin_menu', array( $this,'on_admin_menu') );
@@ -111,6 +106,13 @@ if ( ! class_exists('plugin_logic') ) {
 		 * @change 1.0.4
 		 */
 		public function screen_options_controls() {
+			// Load textdomain for translation
+			load_plugin_textdomain( 'plugin-logic', false, dirname($this->plugin_base) . '/I18n/' );
+			
+			// Load view settings
+			$this->on_dash_columm = get_option( 'plulo_on_dash_col', '' );
+			if ( is_multisite() )
+				$this->blog_range = get_option( 'plulo_blog_range', array(1,10) );
 			
 			if( is_multisite() && isset($_POST['plulo_submit_range'])  ) { 
 				if (!is_user_logged_in() || !current_user_can('activate_plugins') )
@@ -176,11 +178,19 @@ if ( ! class_exists('plugin_logic') ) {
 		  * Plugin Logic options page for the Dashboard
 		  * 
 		  * @since 1.0.0
-		  * @change 1.0.4
+		  * @change 1.0.5
 		  */
 		public function plulo_option_page() {
 			global $wpdb;	
 			$write_error = false;
+			
+			// Load textdomain for translation
+			load_plugin_textdomain( 'plugin-logic', false, dirname($this->plugin_base) . '/I18n/' );
+			
+			// Load view settings
+			$this->on_dash_columm = get_option( 'plulo_on_dash_col', '' );
+			if ( is_multisite() )
+				$this->blog_range = get_option( 'plulo_blog_range', array(1,10) );
 			
 			// Action if Save-Button pressed 
 			if( isset($_POST['plulo_submit']) ) {
@@ -261,14 +271,14 @@ if ( ! class_exists('plugin_logic') ) {
 				foreach ($all_plugin_list as $path) {
 					if ( $path == $this->plugin_base ) continue;
 					
-					// Filter user input
-					$buffer = str_replace(array("\r", "\n", "\t", " "), "", $user_txt_input[$z]);
-					$buffer = strtolower($buffer);
+					$raw_rule_str = str_replace(array("\r", "\n", "\t"), "", $user_txt_input[$z]); // Remove line breaks and tabs
+					$raw_rule_str = plugin_logic::remove_whitesp($raw_rule_str);
+					$raw_rule_str = strtolower($raw_rule_str);
 					$url_rules = array();
 					$word_rules = array();
-					if ( $buffer !== '' ) {
-						if ($buffer[strlen($buffer)-1] == ',') $buffer = substr($buffer, 0, strlen($buffer)-1); 
-						$all_rules = explode(",", $buffer);
+					if ( $raw_rule_str !== '' ) {
+						if ($raw_rule_str[strlen($raw_rule_str)-1] == ',') $raw_rule_str = substr($raw_rule_str, 0, strlen($raw_rule_str)-1); // Remove last comma
+						$all_rules = explode(",", $raw_rule_str); // Split String to an array
 						$url_rules = array_filter( $all_rules, array($this, 'is_url') );
 						$word_rules = array_filter( $all_rules, array($this, 'is_word') );
 					}	
@@ -391,11 +401,12 @@ if ( ! class_exists('plugin_logic') ) {
 				// Second site refresh to get the new Plugin status
 				if ( is_multisite() ) {		
 						if ( ($selected_blog < 2) && !is_array($write_error) ) $this->reload_with_ajax(); 	
-				} else	
+				} else {
 					if ( !is_array($write_error) ) $this->reload_with_ajax(); 	
+				}	
 			}
 			
-			require_once 'plugin-logic-fields.php';
+			require_once 'includes/plugin-logic-fields.php';
 			$plulo_fields = new plulo_fields( $this->plugin_base );		
 
 			?>		
@@ -418,18 +429,48 @@ if ( ! class_exists('plugin_logic') ) {
 			
 		/***
 		 * Filter callback function checks if array-element is an url
+		 * 
 		 * @since 1.0.0
+		 * @return boolean
 		 */
 		public function is_url($var) {
 			return( ('http://' == substr($var,0,7)) || ('https://' == substr($var,0,8)) );
 		}
 		
+		
 		/***
 		 * Filter callback function checks if array-element is not an url
+		 * 
 		 * @since 1.0.0
+		 * @return boolean
 		 */
 		public function is_word($var) {
 			return( ! $this->is_url($var) );
+		}
+		
+		
+		/***
+		 * Remove whitespaces if is no special option
+		 * 
+		 * @since 1.0.5
+		 * @return string
+		 */
+		public function remove_whitesp($str) {
+			// Trim whitspaces from the end and the beginning string 	 
+			$str = trim($str, " ");
+			
+			// Loop through string 
+			$cleaned_str = "";
+			for($i=0; $i<strlen($str)-1; $i++) {
+				if ( !(($str[$i] == " ") && ($str[$i+1] != "[")) ) {
+					$cleaned_str .= $str[$i];
+				}
+			}
+			
+			// Add last char	
+			$cleaned_str .= $str[strlen($str)-1];
+				
+			return $cleaned_str;
 		}
 		
 		
@@ -462,9 +503,12 @@ if ( ! class_exists('plugin_logic') ) {
 		
 		/***
 		 * Creates the plugin activation/deactivation rules for singlesite installations
+		 * 
 		 * @since 1.0.4
+		 * @change 1.0.5
+		 * @return string
 		 */
-		public static function rules_for_singlesite( $singlesite_rules = array() ) {
+		public function rules_for_singlesite( $singlesite_rules = array() ) {
 			$rule_file_content = '';
 			
 			if ( !empty($singlesite_rules) ) {
@@ -487,7 +531,7 @@ if ( ! class_exists('plugin_logic') ) {
  				$first_part .= " * @package     Plugin Logic\n";
 				$first_part .= " * @author      simon_h\n";
 				$first_part .= " * \n";
-				$first_part .= " * @change      1.0.4\n";
+				$first_part .= " * @change      1.0.5\n";
  				$first_part .= " * @since       1.0.0\n";
  				$first_part .= " */\n\n";
 				if ($all_on_dash) $first_part .= "if ( !is_admin() ) {\n\n";
@@ -501,7 +545,9 @@ if ( ! class_exists('plugin_logic') ) {
 				$first_part .= "\t$t1"."\$current_url = 'http' . ((!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] == 'on') ? 's://' : '://') . \$_SERVER['HTTP_HOST'] . \$_SERVER['REQUEST_URI']; \n";	
 	
 				$last_part = "\n";
-				$last_part .= "\t$t1"."//Rules for plugin-logic \n";
+				$last_part .= "\t$t1"."/" . str_repeat("*",40) . "\n";
+				$last_part .= "\t$t1"."* Rules for plugin-logic \n";
+				$last_part .= "\t$t1". str_repeat("*",40) . "/\n";
 				if (!$all_on_dash) $last_part .= "\t$t1"."if ( !is_admin() ) { \n";
 				$last_part .= "		\$key = array_search( '". plugin_basename( __FILE__ ) ."' , \$plugins );\n";
 				$last_part .= "		if ( \$key !== false ) {\n";
@@ -515,6 +561,7 @@ if ( ! class_exists('plugin_logic') ) {
 				if ($all_on_dash) $last_part .= "\n} \n";
 				
 				$rules = '';
+				$this->mobile_check_added = false;
 				foreach( $singlesite_rules as $r ) 
 					$rules .= plugin_logic::rule_syntax($r, $all_on_dash);	
 				
@@ -527,9 +574,12 @@ if ( ! class_exists('plugin_logic') ) {
 		
 		/***
 		 * Creates the plugin activation/deactivation rules for multisite installations
+		 * 
 		 * @since 1.0.4
+		 * @change 1.0.5
+		 * @return string
 		 */
-		public static function rules_for_mulitsite( $multisite_rules = array() ) {
+		public function rules_for_mulitsite( $multisite_rules = array() ) {
 			$rule_file_content = '';
 			if ( !empty($multisite_rules) ) {
 		
@@ -541,7 +591,7 @@ if ( ! class_exists('plugin_logic') ) {
  				$head .= " * @package     Plugin Logic\n";
 				$head .= " * @author      simon_h\n";
 				$head .= " * \n";
-				$head .= " * @change      1.0.4\n";
+				$head .= " * @change      1.0.5\n";
  				$head .= " * @since       1.0.0\n";
  				$head .= " */\n\n";
 				$head .= "function search_needles(\$haystack, \$needles) {\n";
@@ -588,6 +638,7 @@ if ( ! class_exists('plugin_logic') ) {
 				
 				$current_rules = '';
 				$current_index = 0;
+				$this->mobile_check_added = false;
 				
 				foreach( $multisite_rules as $r ) {				
 			
@@ -595,7 +646,7 @@ if ( ! class_exists('plugin_logic') ) {
 					{						
 						$rule_file_content .= plugin_logic::rule_syntax($r, $all_on_dash);
 					} 
-					else /**** Rules for another blog found  ****/
+					else // Rules for another blog found 
 					{		
 						// Close rules from previos blog
 						$t1 = ( ($previos_blog != 0) || (($previos_blog == 0) && ($all_on_dash )) ) ? '	' : '';
@@ -614,7 +665,7 @@ if ( ! class_exists('plugin_logic') ) {
 						}
 						$rule_file_content .=  $rule_foot; 
 						
-						/* Rule head for the next blog ******/
+						// Rule head for the next blog
 						$new_blog = $r->blog_id;
 
 						$all_on_dash = true; 
@@ -661,7 +712,9 @@ if ( ! class_exists('plugin_logic') ) {
 				$rule_file_content .=  $rule_foot; 
 
 				// Rule for Plugin Logic
-				$plulo_self = "//Rules for plugin-logic \n";
+				$plulo_self = "/" . str_repeat("*",40) . "\n";
+				$plulo_self .= "* Rules for plugin-logic \n";
+				$plulo_self .= str_repeat("*",40) . "/\n";
 				$plulo_self .= "if ( !is_network_admin() ) { \n";
 				$plulo_self .= "	function plulo_rules_for_plulo(\$plugins) { \n";
 				$plulo_self .= "		unset( \$plugins['". plugin_basename( __FILE__ ) ."'] );\n";
@@ -678,66 +731,285 @@ if ( ! class_exists('plugin_logic') ) {
 		
 		
 		/***
-		 * The create essential rule syntax for a plugin
+		 * Create essential rule syntax for a plugin
+		 * 
 		 * @since 1.0.4
+		 * @change 1.0.5
+		 * @return string
 		 */
-		public static function rule_syntax( $r = array(), $all_on_dash = true)  {
+		public function rule_syntax( $r = array(), $all_on_dash = true)  {
 			if ( is_multisite() ) {
-				$t1 = ( ($r->blog_id != 0) || (($r->blog_id == 0) && ($all_on_dash )) ) ? '	' : '';
+				$t1 = ( ($r->blog_id != 0) || (($r->blog_id == 0) && ($all_on_dash )) ) ? '	' : ''; // Calculate tab1
 				$current_url_str = "\$GLOBALS['current_url']"; 
 			} else {
 				$t1 = ( $all_on_dash ) ? '	' : ''; 
 				$current_url_str = "\$current_url"; 
 			}	
 					
-			$t2 = ( ($r->on_dashboard == 1) && !$all_on_dash  ) ? '	' : '';
+			$t2 = ( ($r->on_dashboard == 1) && !$all_on_dash  ) ? '	' : ''; // Calculate tab2
 			
-			$url_rules = unserialize($r->urls);
-			$word_rules = unserialize($r->words);
-
-			// Prepare the syntax for the rule-file
+			// Get database values and rebase the arrays
+			$url_rules = array_values(unserialize($r->urls));
+			$word_rules = array_values(unserialize($r->words)); 
+			
+			// Get current plugin name
 			$plugin_name = substr (strrchr ($r->name, '/'), 1);
 			if ($plugin_name === false) $plugin_name = $r->name;
 			
-			$logic_syn = ($r->logic == 0) ? '!' : '';
-			$or_syn = ( (count($url_rules) > 0) && (count($word_rules) > 0) )  ?  ' ||' : '';
+			$mobile_rules_exist = FALSE;
+	
+			// Check if there are url rules only for all mobile devices
+			$mobile_urls = array();
+			$size = count($url_rules);
+			for ($i=0; $i<$size; $i++) {		
+					 
+				if (strpos($url_rules[$i], " [mobile]") !== FALSE) { 
+					$mobile_rules_exist = TRUE;
+					$url_without_ops = str_replace(array(" [mobile]", " "), "", $url_rules[$i]);
+					$mobile_urls[] = $url_without_ops; // Add mobile urls to an new array
+					unset($url_rules[$i]);
+				}
+			}
 			
+			// Check if there are word rules only for all mobile devices
+			$mobile_words = array();
+			$size = count($word_rules);
+			for ($i=0; $i<$size; $i++) {
+						
+				if (strpos($word_rules[$i], " [mobile]") !== FALSE) { 
+					$mobile_rules_exist = TRUE;
+					$word_without_ops = str_replace(array(" [mobile]", " "), "", $word_rules[$i]);
+					$mobile_words[] = $word_without_ops; // Add mobile words to an new array
+					unset($word_rules[$i]);
+				}
+			}
+			
+			// Rebase arrays
+			if ( count($mobile_urls) > 0 )
+				$url_rules = array_values($url_rules); 
+			if ( count($mobile_words) > 0 )
+				$word_rules = array_values($word_rules); 
+				
+			// Check if there are url rules only for tablets
+			$tablet_urls = array();
+			$size = count($url_rules);
+			for ($i=0; $i<$size; $i++) {		
+				if (strpos($url_rules[$i], " [tablet]") !== FALSE) { 
+					$mobile_rules_exist = TRUE;
+					$url_without_ops = str_replace(array(" [tablet]", " "), "", $url_rules[$i]);
+					$tablet_urls[] = $url_without_ops; // Add tablet urls to an new array
+					unset($url_rules[$i]);
+				}
+			}
+			
+			// Check if there are word rules only for tablets
+			$tablet_words = array();
+			$size = count($word_rules);
+			for ($i=0; $i<$size; $i++) {
+						
+				if (strpos($word_rules[$i], " [tablet]") !== FALSE) { 
+					$mobile_rules_exist = TRUE;
+					$word_without_ops = str_replace(array(" [tablet]", " "), "", $word_rules[$i]);
+					$tablet_words[] = $word_without_ops; // Add tablet words to an new array
+					unset($word_rules[$i]);
+				}
+			}
+			
+			// Rebase arrays
+			if ( count($tablet_urls) > 0 )
+				$url_rules = array_values($url_rules); 
+			if ( count($tablet_words) > 0 )
+				$word_rules = array_values($word_rules); 
+				
+			// Check if there are url rules only for handhelds
+			$handheld_urls = array();
+			$size = count($url_rules);
+			for ($i=0; $i<$size; $i++) {	
+					
+				if (strpos($url_rules[$i], " [handheld]") !== FALSE) { 
+					$mobile_rules_exist = TRUE;
+					$url_without_ops = str_replace(array(" [handheld]", " "), "", $url_rules[$i]);
+					$handheld_urls[] = $url_without_ops; // Add handheld urls to an new array
+					unset($url_rules[$i]);
+				}
+			}
+			
+			// Check if there are word rules only for handhelds
+			$handheld_words = array();
+			$size = count($word_rules);
+			for ($i=0; $i<$size; $i++) {
+						
+				if (strpos($word_rules[$i], " [handheld]") !== FALSE) { 
+					$mobile_rules_exist = TRUE;
+					$word_without_ops = str_replace(array(" [handheld]", " "), "", $word_rules[$i]);
+					$handheld_words[] = $word_without_ops; // Add handheld words to an new array
+					unset($word_rules[$i]);
+				}
+			}
+			
+			// Create the sign to decide if the rules should activate or deactivate the plugin
+			$logic_syn = ($r->logic == 0) ? '!' : '';
+			
+			// Check if there words and url rules and if it is true create a "or" sign
+			$or_syn = ( (count($url_rules) > 0) && (count($word_rules) > 0) )  ?  ' ||' : '';
+			$mobile_or_syn = ( (count($mobile_urls) > 0) && (count($mobile_words) > 0) )  ?  ' ||' : '';
+			$tablet_or_syn = ( (count($tablet_urls) > 0) && (count($tablet_words) > 0) )  ?  ' ||' : '';
+			$handheld_or_syn = ( (count($handheld_urls) > 0) && (count($handheld_words) > 0) )  ?  ' ||' : '';
+			
+			// Array for urls
 			$url_rules_syn  = array('','');
 			if (count($url_rules) > 0) { 
-				$url_rules_syn[0] = "\t$t1$t2"."\$url_rules = array (\n\t\t\t$t1$t2'". implode("',\n\t\t\t$t1$t2'",$url_rules) ."'\n\t\t$t1$t2); \n";
+				$url_rules_syn[0] = "\t$t1$t2"."\$url_rules = array (\n\t\t$t1$t2'". implode("',\n\t\t$t1$t2'",$url_rules) ."'\n\t$t1$t2); \n";
 				$url_rules_syn[1] = "in_array($current_url_str, \$url_rules)";
 			}
 			
+			// Array for words
 			$word_rules_syn  = array('','');
 			if (count($word_rules) > 0) { 
-				$word_rules_syn[0] = "\t$t1$t2"."\$word_rules = array (\n\t\t\t$t1$t2'". implode("',\n\t\t\t$t1$t2'",$word_rules) ."'\n\t\t$t1$t2); \n";
+				$word_rules_syn[0] = "\t$t1$t2"."\$word_rules = array (\n\t\t$t1$t2'". implode("',\n\t\t$t1$t2'",$word_rules) ."'\n\t$t1$t2); \n";
 				$word_rules_syn[1] = "search_needles($current_url_str, \$word_rules)"; 
+			}
+			
+			// Array for urls on all mobile devices
+			$mobile_url_rules_syn  = array('','');
+			if (count($mobile_urls) > 0) { 
+				$mobile_url_rules_syn[0] = "\t\t$t1$t2"."\$mobile_url_rules = array (\n\t\t\t$t1$t2'". implode("',\n\t\t\t$t1$t2'",$mobile_urls) ."'\n\t\t$t1$t2); \n";
+				$mobile_url_rules_syn[1] = "in_array($current_url_str, \$mobile_url_rules)";
+			}
+			
+			// Array for words on all mobile devices
+			$mobile_word_rules_syn  = array('','');
+			if (count($mobile_words) > 0) { 
+				$mobile_word_rules_syn[0] = "\t\t$t1$t2"."\$mobile_word_rules = array (\n\t\t\t$t1$t2'". implode("',\n\t\t\t$t1$t2'",$mobile_words) ."'\n\t\t$t1$t2); \n";
+				$mobile_word_rules_syn[1] = "search_needles($current_url_str, \$mobile_word_rules)"; 
+			}
+			
+			// Array for urls on tablets
+			$tablet_url_rules_syn  = array('','');
+			if (count($tablet_urls) > 0) { 
+				$tablet_url_rules_syn[0] = "\t\t$t1$t2"."\$tablet_url_rules = array (\n\t\t\t$t1$t2'". implode("',\n\t\t\t$t1$t2'",$tablet_urls) ."'\n\t\t$t1$t2); \n";
+				$tablet_url_rules_syn[1] = "in_array($current_url_str, \$tablet_url_rules)";
+			}
+			
+			// Array for words on tablets
+			$tablet_word_rules_syn  = array('','');
+			if (count($tablet_words) > 0) { 
+				$tablet_word_rules_syn[0] = "\t\t$t1$t2"."\$tablet_word_rules = array (\n\t\t\t$t1$t2'". implode("',\n\t\t\t$t1$t2'",$tablet_words) ."'\n\t\t$t1$t2); \n";
+				$tablet_word_rules_syn[1] = "search_needles($current_url_str, \$tablet_word_rules)"; 
+			}
+			
+			// Array for urls on handhelds
+			$handheld_url_rules_syn  = array('','');
+			if (count($handheld_urls) > 0) { 
+				$handheld_url_rules_syn[0] = "\t\t$t1$t2"."\$handheld_url_rules = array (\n\t\t\t$t1$t2'". implode("',\n\t\t\t$t1$t2'",$handheld_urls) ."'\n\t\t$t1$t2); \n";
+				$handheld_url_rules_syn[1] = "in_array($current_url_str, \$handheld_url_rules)";
+			}
+			
+			// Array for words on handhelds
+			$handheld_word_rules_syn  = array('','');
+			if (count($handheld_words) > 0) { 
+				$handheld_word_rules_syn[0] = "\t\t$t1$t2"."\$handheld_word_rules = array (\n\t\t\t$t1$t2'". implode("',\n\t\t\t$t1$t2'",$handheld_words) ."'\n\t\t$t1$t2); \n";
+				$handheld_word_rules_syn[1] = "search_needles($current_url_str, \$handheld_word_rules)"; 
 			}
 			
 			$essential_rule = "\n";	
 			
+			// Device detection if rules for mobil devices exists (TODO only onetime)
+			if ( $mobile_rules_exist && !($this->mobile_check_added) ) { 
+				$essential_rule .= "\t$t1$t2"."// Detect current device \n";
+				$essential_rule .= "\t$t1$t2"."require_once(WP_PLUGIN_DIR . '/plugin-logic/includes/device-detection.php');\n";
+				$essential_rule .= "\t$t1$t2"."\$device = detect_users_device();\n";
+				$essential_rule .= "\t$t1$t2"."\$mobile_devices = array('tablet','handheld','low_support');\n";
+				$essential_rule .= "\n";	
+				$this->mobile_check_added = true;
+			}
+			
+			// Rule head with plugin name
 			if ( ($r->on_dashboard == 1) && !$all_on_dash ) {
-				$essential_rule .= "\t$t1"."//Rules for $plugin_name\n";
+				$essential_rule .= "\t$t1". "/" . str_repeat("*",40) . "\n";
+				$essential_rule .= "\t$t1"." * Rules for $plugin_name\n";
+				$essential_rule .= "\t$t1"." " . str_repeat("*",40) . "/\n";
 				$essential_rule .= "\t$t1"."if ( !is_admin() ) {\n";
 				$t2 = '	';
 			} else {
-				$essential_rule  .= "\t$t1"."//Rules for $plugin_name\n";	
+				$essential_rule .= "\t$t1". "/" . str_repeat("*",40) . "\n";
+				$essential_rule .= "\t$t1"." * Rules for $plugin_name\n";
+				$essential_rule .= "\t$t1"." " . str_repeat("*",40) . "/\n";
 			}	
-
-			$essential_rule .= $url_rules_syn[0];
-			$essential_rule .= $word_rules_syn[0];
-			$essential_rule .= "\t$t1$t2"."if ( $logic_syn($url_rules_syn[1]$or_syn $word_rules_syn[1]) ) { \n";
 			
-			if ( is_multisite() && ($r->blog_id == 0) ) 
-				$essential_rule .= "\t\t$t1$t2"."unset( \$plugins['{$r->name}'] );\n";
-			 else {	
+			// Deactivation syntax for all devices
+			if ( (count($url_rules) > 0) || (count($word_rules) > 0) ) {
+				// Arrays with rules for all devices
+				$essential_rule .= $url_rules_syn[0];
+				$essential_rule .= $word_rules_syn[0];
+				$essential_rule .= "\t$t1$t2"."if ( $logic_syn($url_rules_syn[1]$or_syn $word_rules_syn[1]) ) { \n";
+		
+				if ( is_multisite() && ($r->blog_id == 0) ) 
+					$essential_rule .= "\t\t$t1$t2"."unset( \$plugins['{$r->name}'] );\n";
+				 else {	
+					$essential_rule .= "\t\t$t1$t2"."\$key = array_search( '{$r->name}' , \$plugins );\n";
+					$essential_rule .= "\t\t$t1$t2"."if ( \$key !== false ) {\n";
+					$essential_rule .= "\t\t\t$t1$t2"."unset( \$plugins[\$key] );\n";
+					$essential_rule .= "\t\t$t1$t2"."}\n";	
+					$essential_rule .= "\t$t1$t2"."}\n";
+				}
+			} else if( $logic_syn == "!" ) { // (multisite test missing)
+				$essential_rule .= "\t$t1$t2"."if ( !(in_array(\$device,\$mobile_devices)) ) { \n";
 				$essential_rule .= "\t\t$t1$t2"."\$key = array_search( '{$r->name}' , \$plugins );\n";
 				$essential_rule .= "\t\t$t1$t2"."if ( \$key !== false ) {\n";
 				$essential_rule .= "\t\t\t$t1$t2"."unset( \$plugins[\$key] );\n";
 				$essential_rule .= "\t\t$t1$t2"."}\n";	
+				$essential_rule .= "\t$t1$t2"."}\n";
 			}	
-
-			$essential_rule .= "\t$t1$t2"."}\n";
+			
+			// Deactivation syntax for all mobile devices (multisite test missing) 
+			if ( (count($mobile_urls) > 0) || (count($mobile_words) > 0) ) {
+				$essential_rule .= "\n";
+				$essential_rule .= "\t$t1$t2// $plugin_name mobile rules\n";
+				$essential_rule .= "\t$t1$t2"."if (in_array(\$device,\$mobile_devices)) { \n";
+				$essential_rule .= $mobile_url_rules_syn[0];
+				$essential_rule .= $mobile_word_rules_syn[0]; 
+				$essential_rule .= "\t\t$t1$t2"."if ( $logic_syn($mobile_url_rules_syn[1]$mobile_or_syn $mobile_word_rules_syn[1]) ) { \n";
+				$essential_rule .= "\t\t\t$t1$t2"."\$key = array_search( '{$r->name}' , \$plugins );\n";
+				$essential_rule .= "\t\t\t$t1$t2"."if ( \$key !== false ) {\n";
+				$essential_rule .= "\t\t\t\t$t1$t2"."unset( \$plugins[\$key] );\n";
+				$essential_rule .= "\t\t\t$t1$t2"."}\n";	
+				$essential_rule .= "\t\t$t1$t2"."}\n";
+				$essential_rule .= "\t$t1$t2"."}\n";
+			}	
+			
+			// Deactivation syntax for all tablets (multisite test missing) 
+			if ( (count($tablet_urls) > 0) || (count($tablet_words) > 0) ) {
+				$essential_rule .= "\n";
+				$essential_rule .= "\t$t1$t2// $plugin_name tablet rules\n";
+				$essential_rule .= "\t$t1$t2"."if (\$device == 'tablet') { \n";
+				$essential_rule .= $tablet_url_rules_syn[0];
+				$essential_rule .= $tablet_word_rules_syn[0]; 
+				$essential_rule .= "\t\t$t1$t2"."if ( $logic_syn($tablet_url_rules_syn[1]$tablet_or_syn $tablet_word_rules_syn[1]) ) { \n";
+				$essential_rule .= "\t\t\t$t1$t2"."\$key = array_search( '{$r->name}' , \$plugins );\n";
+				$essential_rule .= "\t\t\t$t1$t2"."if ( \$key !== false ) {\n";
+				$essential_rule .= "\t\t\t\t$t1$t2"."unset( \$plugins[\$key] );\n";
+				$essential_rule .= "\t\t\t$t1$t2"."}\n";	
+				$essential_rule .= "\t\t$t1$t2"."}\n";
+				$essential_rule .= "\t$t1$t2"."}\n";
+			}	
+			
+			// Deactivation syntax for all handhelds and low_support devices (multisite test missing) 
+			if ( (count($handheld_urls) > 0) || (count($handheld_words) > 0) ) {
+				$essential_rule .= "\n";
+				$essential_rule .= "\t$t1$t2// $plugin_name handheld rules\n";
+				$essential_rule .= "\t$t1$t2"."if ( (\$device == 'handheld') || (\$device == 'low_support') ) { \n";
+				$essential_rule .= $handheld_url_rules_syn[0];
+				$essential_rule .= $handheld_word_rules_syn[0]; 
+				$essential_rule .= "\t\t$t1$t2"."if ( $logic_syn($handheld_url_rules_syn[1]$handheld_or_syn $handheld_word_rules_syn[1]) ) { \n";
+				$essential_rule .= "\t\t\t$t1$t2"."\$key = array_search( '{$r->name}' , \$plugins );\n";
+				$essential_rule .= "\t\t\t$t1$t2"."if ( \$key !== false ) {\n";
+				$essential_rule .= "\t\t\t\t$t1$t2"."unset( \$plugins[\$key] );\n";
+				$essential_rule .= "\t\t\t$t1$t2"."}\n";	
+				$essential_rule .= "\t\t$t1$t2"."}\n";
+				$essential_rule .= "\t$t1$t2"."}\n";
+			}
+			
 			if ( ($r->on_dashboard == 1) && !$all_on_dash ) $essential_rule .= "\t$t1"."}\n";
 
 			return $essential_rule ;
@@ -746,7 +1018,9 @@ if ( ! class_exists('plugin_logic') ) {
 			
 		/***
 		 * Try to write the rule content string into the file WPMU_PLUGIN_DIR/plugin-logic-rules.php
+		 * 
 		 * @since 1.0.4
+		 * @return boolean
 		 */
 		public static function write_rule_file( $rules = '' ) {
 			$rule_file = WPMU_PLUGIN_DIR . '/' . 'plugin-logic-rules.php';
