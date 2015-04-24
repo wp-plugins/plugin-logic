@@ -3,12 +3,12 @@ Contributors: simon_h
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=SMX67F2CZLDZL
 Tags: deactivate plugins by url, activate plugins by url, deactivate plugins by rules, disable plugins by page, disable plugins by rules 
 Requires at least: 3.8
-Tested up to: 4.1
+Tested up to: 4.2
 Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Activate plugins on pages only if they are really needed.
+Url based Plugin deactivation or activation.
 
 == Description ==
 
